@@ -39,4 +39,7 @@ for i in $(seq 1 20); do
 done
 echo "timeline entries: $n"
 [ "$n" -ge 8 ] || { echo "FAIL timeline did not catch up"; exit 1; }
+draft=$(post "/api/trips/$id/quick-entry" '{"text":"Ben paid 40 usd for the boat with Cy"}')
+[ "$(jq -r .currency <<<"$draft")" = "USD" ] && [ "$(jq -r .paidBy <<<"$draft")" = "$b" ] || { echo "FAIL quick entry: $draft"; exit 1; }
+echo "quick entry: $(jq -c '{description, amount, currency}' <<<"$draft")"
 echo "SMOKE PASS"
