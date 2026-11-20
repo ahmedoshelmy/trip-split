@@ -153,6 +153,21 @@ class TripFlowIntegrationTest {
     mvc.perform(get("/api/trips/" + UUID.randomUUID())).andExpect(status().isNotFound());
   }
 
+  @Test
+  void quickEntryProposesADraftWithoutStoringIt() throws Exception {
+    var draft =
+        send(
+            post(tripUrl + "/quick-entry"),
+            null,
+            "{\"text\": \"Lina paid 40 usd for the boat with Karim\"}",
+            status().isOk());
+
+    assertThat(draft.get("currency").asString()).isEqualTo("USD");
+    assertThat(draft.get("paidBy").asString()).isEqualTo(members.get(1));
+    assertThat(draft.get("participants")).hasSize(2);
+    mvc.perform(get(tripUrl)).andExpect(header().string("ETag", "\"4\""));
+  }
+
   private String addEqualExpense(String description, int payer, String amount) throws Exception {
     var body =
         """

@@ -19,6 +19,7 @@ Java 25 · Spring Boot 4.2 · Spring Modulith · event sourcing on plain Postgre
 - **Balances, live** – who is owed and who owes, pushed to every open browser over a WebSocket.
 - **Settle up in at most n-1 transfers** – greedy min-cash-flow; "Mark paid" records the settlement.
 - **History with undo** – a timeline of every event; undo is a compensating event, the original stays visible.
+- **Quick entry** – type "Lina paid 40 usd for the boat with Karim" and the form fills itself (plain rules, no AI).
 - **Time travel** – a slider (and `?asOf=` on the API) replays the trip up to any moment.
 - **Safe concurrent edits** – every response carries the trip version as an `ETag`; a write with a stale
   `If-Match` gets `412` instead of silently overwriting a friend's change.
@@ -104,6 +105,7 @@ POST /api/trips/{id}/members                     If-Match: "7"   {"name":"Karim"
 POST /api/trips/{id}/expenses                    If-Match: "8"
      {"description":"Boat","paidBy":"…","amount":"40.00","currency":"USD","rate":"48.75",
       "split":{"kind":"SHARES","shares":{"…":1,"…":2}}}
+POST /api/trips/{id}/quick-entry                {"text":"dinner 600 split with Omar and Lina"} -> draft, not stored
 POST /api/trips/{id}/expenses/{eid}/void         compensating event {"reason":"paid twice"}
 POST /api/trips/{id}/settlements                 {"from":"…","to":"…","amount":"250.00"}
 POST /api/trips/{id}/settlements/{sid}/void
@@ -146,8 +148,7 @@ module structure: `/actuator/modulith`.
 ## Status
 
 MVP, single-tenant, no authentication: run it for your group on your own machine or network. Rates are entered by
-hand. Stretch ideas: quick-entry parser ("dinner 600 split with Omar and Lina", rules first, optional free LLM off
-by default), exchange rates from a free keyless API (cached, rate still stored per expense), CSV export,
+hand. Stretch ideas: an optional free-LLM fallback for quick entry (off by default; rules run first), exchange rates from a free keyless API (cached, rate still stored per expense), CSV export,
 itinerary items.
 
 Known limits: `asOf` trusts the API server's clock; the in-memory STOMP broker means one API instance (a relay to

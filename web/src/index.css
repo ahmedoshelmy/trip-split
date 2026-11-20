@@ -378,6 +378,15 @@ table.expenses {
   margin: 0;
 }
 
+.inline {
+  display: flex;
+  gap: 8px;
+}
+
+.grow {
+  flex: 1;
+}
+
 form.inline {
   display: flex;
   gap: 8px;

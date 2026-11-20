@@ -206,6 +206,7 @@ export default function App() {
                 members={trip.members}
                 baseCurrency={trip.baseCurrency}
                 onAdd={(body) => run((v) => api.addExpense(trip.id, v, body))}
+                onParse={(text) => api.quickEntry(trip.id, text)}
               />
             </section>
           )}

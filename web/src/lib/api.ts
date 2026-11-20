@@ -101,6 +101,15 @@ export interface TimelineEntry {
   undoable: boolean
 }
 
+export interface QuickEntryDraft {
+  description: string
+  amount: string
+  currency: string
+  paidBy?: string
+  participants: string[]
+  unknownNames: string[]
+}
+
 export interface CommandResult {
   tripId: string
   version: number
@@ -147,6 +156,9 @@ export const api = {
   settleUp: (id: string, asOf?: string) =>
     request<SettleUp>(`/api/trips/${id}/settle-up${asOfQuery(asOf)}`),
   timeline: (id: string) => request<TimelineEntry[]>(`/api/trips/${id}/timeline`),
+
+  quickEntry: (id: string, text: string) =>
+    command<QuickEntryDraft>(`/api/trips/${id}/quick-entry`, null, { text }),
 
   createTrip: (name: string, baseCurrency: string, members: string[]) =>
     command<Trip>('/api/trips', null, { name, baseCurrency, members }),

@@ -1,5 +1,6 @@
 package dev.tripsplit.trips.adapter.web;
 
+import dev.tripsplit.expenses.domain.QuickEntryParser;
 import dev.tripsplit.expenses.domain.SplitRule;
 import dev.tripsplit.money.Money;
 import dev.tripsplit.trips.BalanceSheet;
@@ -7,11 +8,13 @@ import dev.tripsplit.trips.TripSummary;
 import dev.tripsplit.trips.adapter.web.TripRequests.AddExpense;
 import dev.tripsplit.trips.adapter.web.TripRequests.AddMember;
 import dev.tripsplit.trips.adapter.web.TripRequests.CreateTrip;
+import dev.tripsplit.trips.adapter.web.TripRequests.QuickEntryText;
 import dev.tripsplit.trips.adapter.web.TripRequests.RecordSettlement;
 import dev.tripsplit.trips.adapter.web.TripRequests.Split;
 import dev.tripsplit.trips.adapter.web.TripRequests.VoidExpense;
 import dev.tripsplit.trips.adapter.web.TripResponses.CommandView;
 import dev.tripsplit.trips.adapter.web.TripResponses.EventView;
+import dev.tripsplit.trips.adapter.web.TripResponses.QuickEntryDraft;
 import dev.tripsplit.trips.adapter.web.TripResponses.TripView;
 import dev.tripsplit.trips.application.CommandResult;
 import dev.tripsplit.trips.application.TripCommands;
@@ -120,6 +123,24 @@ class TripController {
         new ExpenseDraft(
             body.description(), body.paidBy(), amount, rate(body.rate()), rule(body.split(), body));
     return created(commands.addExpense(tripId, Versions.fromIfMatch(ifMatch), draft));
+  }
+
+  /** Parses "dinner 600 split with Omar and Lina" into a draft; nothing is stored. */
+  @PostMapping("/{tripId}/quick-entry")
+  QuickEntryDraft quickEntry(@PathVariable UUID tripId, @Valid @RequestBody QuickEntryText body) {
+    var trip = queries.trip(tripId).orElseThrow(() -> notFound(tripId, null));
+    var idsByName = new LinkedHashMap<String, UUID>();
+    trip.members().forEach(m -> idsByName.put(m.name(), m.id()));
+    var entry =
+        QuickEntryParser.parse(body.text(), List.copyOf(idsByName.keySet()))
+            .orElseThrow(() -> new TripRuleViolation("Could not find an amount in that text"));
+    return new QuickEntryDraft(
+        entry.description(),
+        entry.amount(),
+        entry.currency() == null ? trip.baseCurrency() : entry.currency(),
+        entry.payer() == null ? null : idsByName.get(entry.payer()),
+        entry.participants().stream().map(idsByName::get).toList(),
+        entry.unknownNames());
   }
 
   @PostMapping("/{tripId}/expenses/{expenseId}/void")

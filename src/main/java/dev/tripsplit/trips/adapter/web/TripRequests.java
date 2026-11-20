@@ -40,5 +40,7 @@ final class TripRequests {
 
   record VoidExpense(@Size(max = 120) String reason) {}
 
+  record QuickEntryText(@NotBlank @Size(max = 200) String text) {}
+
   record RecordSettlement(@NotNull UUID from, @NotNull UUID to, @NotBlank String amount) {}
 }

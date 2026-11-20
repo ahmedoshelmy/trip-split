@@ -81,6 +81,15 @@ final class TripResponses {
     }
   }
 
+  /** A proposed expense from quick-entry text; the client fills its form with it. */
+  record QuickEntryDraft(
+      String description,
+      String amount,
+      String currency,
+      UUID paidBy,
+      List<UUID> participants,
+      List<String> unknownNames) {}
+
   record CommandView(UUID tripId, long version, UUID id) {}
 
   record EventView(long version, String type, Object data) {}

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import type { Member } from '../lib/api'
+import type { Member, QuickEntryDraft } from '../lib/api'
 import { formatMinor, parseToMinor } from '../lib/money'
 import { buildSplit, previewEqual, type SplitKind, type SplitRow } from '../lib/split'
 
@@ -7,12 +7,14 @@ interface Props {
   members: Member[]
   baseCurrency: string
   onAdd: (body: unknown) => Promise<void>
+  onParse: (text: string) => Promise<QuickEntryDraft>
 }
 
 const freshRows = (members: Member[]): SplitRow[] =>
   members.map((m) => ({ memberId: m.id, included: true, shares: '1', exact: '' }))
 
-export function ExpenseForm({ members, baseCurrency, onAdd }: Props) {
+export function ExpenseForm({ members, baseCurrency, onAdd, onParse }: Props) {
+  const [quick, setQuick] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState(baseCurrency)
@@ -45,6 +47,30 @@ export function ExpenseForm({ members, baseCurrency, onAdd }: Props) {
   const update = (memberId: string, patch: Partial<SplitRow>) =>
     setRows(allRows.map((r) => (r.memberId === memberId ? { ...r, ...patch } : r)))
 
+  const applyQuickEntry = async () => {
+    try {
+      const draft = await onParse(quick)
+      setDescription(draft.description)
+      setAmount(draft.amount)
+      setCurrency(draft.currency)
+      if (draft.paidBy) setPaidBy(draft.paidBy)
+      setKind('EQUAL')
+      setRows(
+        members.map((m) => ({
+          memberId: m.id,
+          included: draft.participants.includes(m.id),
+          shares: '1',
+          exact: '',
+        })),
+      )
+      setError(
+        draft.unknownNames.length > 0 ? `Not on this trip: ${draft.unknownNames.join(', ')}` : null,
+      )
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const check = buildSplit(kind, allRows, amount, currency)
@@ -72,6 +98,24 @@ export function ExpenseForm({ members, baseCurrency, onAdd }: Props) {
 
   return (
     <form className="stack" onSubmit={submit} aria-label="Add expense">
+      <div className="inline">
+        <input
+          className="grow"
+          aria-label="Quick entry"
+          value={quick}
+          onChange={(e) => setQuick(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              void applyQuickEntry()
+            }
+          }}
+          placeholder="Quick: dinner 600 split with Omar and Lina"
+        />
+        <button type="button" onClick={() => void applyQuickEntry()} disabled={!quick.trim()}>
+          Fill in
+        </button>
+      </div>
       <div className="grid three">
         <label className="span2">
           What
