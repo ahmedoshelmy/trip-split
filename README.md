@@ -7,6 +7,8 @@ balance exact to the piaster, tells you the fewest transfers that settle the tri
 "what did we owe each other on Saturday night?" Every change is an event, so nothing is ever lost and undo is just
 another event.
 
+![Trip page: balances, settle-up suggestions, history with undo, expenses](docs/screenshot.png)
+
 Java 25 · Spring Boot 4.2 · Spring Modulith · event sourcing on plain Postgres · STOMP WebSockets · React + Vite.
 
 ## What it does
