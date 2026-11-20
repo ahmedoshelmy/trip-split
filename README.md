@@ -21,6 +21,7 @@ Java 25 · Spring Boot 4.2 · Spring Modulith · event sourcing on plain Postgre
 - **History with undo** – a timeline of every event; undo is a compensating event, the original stays visible.
 - **Quick entry** – type "Lina paid 40 usd for the boat with Karim" and the form fills itself (plain rules, no AI).
 - **Time travel** – a slider (and `?asOf=` on the API) replays the trip up to any moment.
+- **CSV export** – the expenses with each person's share, for a spreadsheet (also as of any moment).
 - **Safe concurrent edits** – every response carries the trip version as an `ETag`; a write with a stale
   `If-Match` gets `412` instead of silently overwriting a friend's change.
 
@@ -68,7 +69,7 @@ Requirements: Docker (or Podman with the Docker CLI).
 ```bash
 cp .env.example .env                 # optional; set TRIPSPLIT_DEMO_DATA=true for an invented demo trip
 docker compose up -d --build --wait
-open http://localhost:8090
+# then open http://localhost:8090
 ./scripts/smoke.sh                   # create trip, 3 expenses, balances sum to zero, 412 on stale If-Match, void
 docker compose down -v
 ```
@@ -112,6 +113,7 @@ POST /api/trips/{id}/settlements/{sid}/void
 GET  /api/trips/{id}/balances?asOf=…             inline projection (now) or replay (asOf)
 GET  /api/trips/{id}/settle-up?asOf=…            fewest transfers
 GET  /api/trips/{id}/timeline                    async projection, newest first
+GET  /api/trips/{id}/expenses.csv?asOf=…         spreadsheet export, one share column per member
 GET  /api/trips/{id}/events                      the raw stream, for the curious
 WS   /ws  (STOMP)  SUBSCRIBE /topic/trips/{id}   {"type":"balances"|"timeline","version":…}
 ```
@@ -120,7 +122,7 @@ Money is sent as decimal strings and returned as integer minor units plus a curr
 problem details: 404 unknown ids, 422 broken rules, 412 stale version. Health: `/actuator/health/readiness`;
 module structure: `/actuator/modulith`.
 
-## Design notes (talking points)
+## Interview talking points (design notes)
 
 1. **When event sourcing pays.** Shared money needs an audit trail, undo and "as of" answers; storing events gives
    all three by construction. The costs are real: replays on read, projections to maintain, and event schemas that
@@ -142,13 +144,16 @@ module structure: `/actuator/modulith`.
    internals; ArchUnit keeps each module's `domain` free of Spring, Jackson and JDBC. Module events go through the
    event publication registry: stored in the command's transaction, delivered after commit, retried after a
    crash; listeners are idempotent on `(trip_id, version)`. ([ADR 4](docs/adr/0004-spring-modulith-modular-monolith.md))
-7. **CQRS falls out naturally.** Commands append; "now" reads hit projections; "then" reads replay. The timeline is
+7. **Exports that cannot bite.** The CSV export is a pure function of the replayed trip (so `asOf` works for free),
+   follows RFC 4180 quoting and neutralises spreadsheet formula injection (`=`, `+`, `-`, `@` cells get an
+   apostrophe): user-typed descriptions end up in someone's Excel.
+8. **CQRS falls out naturally.** Commands append; "now" reads hit projections; "then" reads replay. The timeline is
    eventually consistent on purpose and the UI refreshes it when the `timeline` WebSocket message arrives.
 
 ## Status
 
 MVP, single-tenant, no authentication: run it for your group on your own machine or network. Rates are entered by
-hand. Stretch ideas: an optional free-LLM fallback for quick entry (off by default; rules run first), exchange rates from a free keyless API (cached, rate still stored per expense), CSV export,
+hand. Stretch ideas: an optional free-LLM fallback for quick entry (off by default; rules run first), exchange rates from a free keyless API (cached, rate still stored per expense),
 itinerary items.
 
 Known limits: `asOf` trusts the API server's clock; the in-memory STOMP broker means one API instance (a relay to
