@@ -1,0 +1,62 @@
+name: trip-split
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: tripsplit
+      POSTGRES_USER: ${POSTGRES_USER:-tripsplit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tripsplit}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d tripsplit"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/tripsplit
+      DATABASE_USER: ${POSTGRES_USER:-tripsplit}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-tripsplit}
+      TRIPSPLIT_DEMO_DATA: ${TRIPSPLIT_DEMO_DATA:-false}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:*,http://127.0.0.1:*}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      start_period: 40s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+  web:
+    build: ./web
+    ports:
+      - "${WEB_PORT:-8090}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+
+volumes:
+  pgdata:
