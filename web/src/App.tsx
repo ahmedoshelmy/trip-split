@@ -213,6 +213,11 @@ export default function App() {
           <section className="card">
             <h2>Expenses</h2>
             <ExpenseList trip={trip} />
+            <p className="muted">
+              <a href={`/api/trips/${trip.id}/expenses.csv${asOf ? `?asOf=${encodeURIComponent(asOf)}` : ''}`} download>
+                Download as CSV
+              </a>
+            </p>
           </section>
           {!readOnly && (
             <section className="card">

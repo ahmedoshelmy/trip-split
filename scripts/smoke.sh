@@ -42,4 +42,7 @@ echo "timeline entries: $n"
 draft=$(post "/api/trips/$id/quick-entry" '{"text":"Ben paid 40 usd for the boat with Cy"}')
 [ "$(jq -r .currency <<<"$draft")" = "USD" ] && [ "$(jq -r .paidBy <<<"$draft")" = "$b" ] || { echo "FAIL quick entry: $draft"; exit 1; }
 echo "quick entry: $(jq -c '{description, amount, currency}' <<<"$draft")"
+rows=$(curl -fsS "$BASE/api/trips/$id/expenses.csv" | wc -l)
+[ "$rows" -eq 4 ] || { echo "FAIL csv export has $rows lines"; exit 1; }
+echo "csv export: header + 3 expenses"
 echo "SMOKE PASS"

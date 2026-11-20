@@ -2,6 +2,7 @@ package dev.tripsplit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -166,6 +167,26 @@ class TripFlowIntegrationTest {
     assertThat(draft.get("paidBy").asString()).isEqualTo(members.get(1));
     assertThat(draft.get("participants")).hasSize(2);
     mvc.perform(get(tripUrl)).andExpect(header().string("ETag", "\"4\""));
+  }
+
+  @Test
+  void expensesExportAsCsvWithOneShareColumnPerMember() throws Exception {
+    addEqualExpense("Lunch, river view", 0, "300.00");
+
+    var response =
+        mvc.perform(get(tripUrl + "/expenses.csv"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Disposition", containsString("attachment")))
+            .andReturn()
+            .getResponse();
+
+    assertThat(response.getContentType()).startsWith("text/csv");
+    var lines = response.getContentAsString().split("\r\n");
+    assertThat(lines[0])
+        .isEqualTo(
+            "date,description,paid_by,amount,currency,rate,amount_EGP,status,share_Omar,share_Lina,share_Karim");
+    assertThat(lines[1])
+        .contains(",\"Lunch, river view\",Omar,300.00,EGP,1,300.00,active,100.00,100.00,100.00");
   }
 
   private String addEqualExpense(String description, int payer, String amount) throws Exception {

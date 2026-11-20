@@ -17,6 +17,7 @@ import dev.tripsplit.trips.adapter.web.TripResponses.EventView;
 import dev.tripsplit.trips.adapter.web.TripResponses.QuickEntryDraft;
 import dev.tripsplit.trips.adapter.web.TripResponses.TripView;
 import dev.tripsplit.trips.application.CommandResult;
+import dev.tripsplit.trips.application.ExpenseCsv;
 import dev.tripsplit.trips.application.TripCommands;
 import dev.tripsplit.trips.application.TripQueryService;
 import dev.tripsplit.trips.domain.ExpenseDraft;
@@ -25,6 +26,7 @@ import dev.tripsplit.trips.domain.TripRuleViolation;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +34,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -94,6 +98,23 @@ class TripController {
         (asOf == null ? queries.balances(tripId) : queries.balancesAsOf(tripId, asOf))
             .orElseThrow(() -> notFound(tripId, asOf));
     return ResponseEntity.ok().eTag(Versions.etag(sheet.version())).body(sheet);
+  }
+
+  /** The expenses as CSV for a spreadsheet, now or {@code asOf} a moment in the past. */
+  @GetMapping(value = "/{tripId}/expenses.csv", produces = "text/csv")
+  ResponseEntity<String> expensesCsv(
+      @PathVariable UUID tripId,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          Instant asOf) {
+    var trip =
+        (asOf == null ? queries.trip(tripId) : queries.tripAsOf(tripId, asOf))
+            .orElseThrow(() -> notFound(tripId, asOf));
+    var disposition =
+        ContentDisposition.attachment().filename("trip-" + tripId + "-expenses.csv").build();
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+        .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+        .body(ExpenseCsv.of(trip));
   }
 
   @GetMapping("/{tripId}/events")
