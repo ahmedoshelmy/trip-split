@@ -1,5 +1,12 @@
 # Trip Split
 
+[![CI](https://github.com/ahmedoshelmy/trip-split/actions/workflows/ci.yml/badge.svg)](https://github.com/ahmedoshelmy/trip-split/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Java 25](https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot 4.2](https://img.shields.io/badge/Spring_Boot-4.2-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+
+Part of the [systems portfolio](https://github.com/ahmedoshelmy/systems-portfolio).
+
 **Split trip costs with friends: live balances, the fewest transfers to settle up, and the full history.**
 
 Log who paid what, in any currency, and split it equally, by shares or by exact amounts. Trip Split keeps every
