@@ -41,3 +41,4 @@ web/dist/
 .env
 .env.*
 !.env.example
+.jqwik-database
