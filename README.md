@@ -69,6 +69,20 @@ src/main/java/dev/tripsplit/
 web/            React + Vite + TypeScript, @stomp/stompjs
 ```
 
+## Run in Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ahmedoshelmy/trip-split)
+
+The repo carries a dev container (`.devcontainer/`: JDK 25, Node 22, Docker-in-Docker), so it opens as-is in GitHub
+Codespaces or VS Code Dev Containers and pre-fetches the Maven and npm dependencies on create. Then one command:
+
+```bash
+docker compose up -d --build --wait
+```
+
+Open the **Web** port (8090) from the Ports tab (it proxies the API). Prefix the command with
+`TRIPSPLIT_DEMO_DATA=true` for the invented demo trip.
+
 ## Quickstart
 
 Requirements: Docker (or Podman with the Docker CLI).
